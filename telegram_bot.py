@@ -16,6 +16,7 @@ from telegram.ext import (
 )
 from config import BOT_TOKEN
 from datetime import datetime
+from check_resi import check_resi
 
 FIRST, SELECT_EXPEDITIONS, INPUT_RESI = map(chr, range(3))
 JNE, JNT, POS, LION, NINJA, SICEPAT, TIKI, ANTERAJA, WAHANA = map(
@@ -107,8 +108,25 @@ class TelegramBot:
 
         self.send_message(update.effective_chat.id, text)
         self.send_message(update.effective_chat.id, 'Mohon tunggu...')
-        
+
+        if (expedition == 'POS'):
+            self.send_message(update.effective_chat.id, 'Mohon maaf terjadi kendala menghubungi kurir, harap coba beberapa saat lagi')
+            return END
+
         # Do Request to API
+        result = check_resi(expedition.lower(), resi)
+
+        if 'error' in result:
+            self.send_message(update.effective_chat.id, result['message'])
+        else:
+            historys = result['data']['detail']['history']
+            historys.reverse()
+            
+            message = ""
+            for history in historys:
+                message = message+"*{}*\n{}\n\n".format(history['time'], history['desc'])
+            
+            self.send_message(update.effective_chat.id, message)
 
         return END
 
@@ -119,7 +137,7 @@ class TelegramBot:
 
         for text in msgs:
             try:
-                self.bot.send_message(chat_id=chat_id, text=text), "Send Message"
+                self.bot.send_message(chat_id=chat_id, text=text, parse_mode='markdown'), "Send Message"
             except Exception as e:
                 print("{} : {}".format(chat_id, str(e)))
 
